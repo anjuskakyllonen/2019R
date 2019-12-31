@@ -1,0 +1,137 @@
+---
+title: "Exercise4"
+output: html_notebook
+---
+
+1. Read in data and calculate the number of observations in 2010.
+```{r}
+songs = read.csv("songs.csv")
+summary(songs)
+```
+```{r}
+table(songs$year)
+```
+In 2010, there were 373 observations.
+
+2. How many songs does the dataset include for which the artist name is "Michael Jackson"? Which of these songs by Michael Jackson made it to the Top 10? Select all that apply.
+
+```{r}
+MichaelJackson = subset(songs, artistname == "Michael Jackson")
+nrow(MichaelJackson)
+```
+There are 18 songs by Michael Jackson in the dataset.
+
+```{r}
+MichaelJackson[c("songtitle", "Top10")]
+```
+Three songs made it to top 10: You Rock My World, You Are Not Alone and Black or White.
+
+3. How many observations (songs) are in the training set? Let's generate test and training sets and calculate observations in training set.
+
+```{r}
+SongsTrain=subset(songs,year<=2009)
+SongsTest=subset(songs,year>2009)
+nrow(SongsTrain)
+```
+
+There are 7201 observations in the training dataset.
+
+Label nonvars.
+
+```{r}
+nonvars = c("year", "songtitle", "artistname", "songID", "artistID")
+```
+
+Remove nonvars.
+```{r}
+SongsTrain = SongsTrain[, !names(SongsTrain) %in% nonvars]
+SongsTest = SongsTest[, !names(SongsTest) %in% nonvars]
+```
+Build the model1.
+```{r}
+model1=glm(Top10~.,data=SongsTrain,family=binomial)
+summary(model1)
+```
+4. What does the model suggest? 
+
+The higher our confidence about time signature, key and tempo, the more likely the song is to be in the Top 10 since the estimates are positive and highly significant. In terms of complexity, the model thus not that complex but rather simple.
+
+5. Songs with heavier instrumentation tend to be louder (have higher values in the variable "loudness") and more energetic (have higher values in the variable "energy"). By inspecting the coefficient of the variable "loudness", what does model1 suggest? By inspecting the coefficient of the variable "energy", do we draw the same conclusions as above? No, since energy and loudness estimates are going to the opposite directions: when loudness goes up, energy goes down.
+
+What is the correlation of all variables in the training set?
+```{r}
+cor(SongsTrain)
+```
+What is the correlation between the variables "loudness" and "energy" in the training set? It is 0.739906708, thus they are highly correlated.
+
+Build model2.
+```{r}
+model2 = glm(Top10~.-loudness, data=SongsTrain, family = binomial)
+summary(model2)
+```
+Previously negative and significant in model1, energy coefficient becomes positive and non-significant in model2. AIC in the model1 was 4827.2 and in model2 it was 4937.8. As smaller AIC is better, model1 performs better in this sense. 
+
+Build model3.
+```{r}
+model3 = glm(Top10~.-energy, data=SongsTrain, family = binomial)
+summary(model3)
+```
+Remembering that higher loudness and energy both occur in songs with heavier instrumentation, do we make the same observation about the popularity of heavy instrumentation as we did with model2? After removing energy from the model, loudness becomes highly significant. Thus it supports the idea that popular songs have more loudness.
+
+6. From our tree models, which has the best AIC? Model1. 
+
+Make predictions using model3.
+```{r}
+testPredict=predict(model3,newdata=SongsTest, type="response")
+table(SongsTest$Top10, testPredict>=0.45)
+```
+7. What is the accuracy of model3 on the test set, using a threshold of 0.45?
+
+```{r}
+model3_accuracy=(309+19)/(309+5+40+19)
+model3_accuracy
+```
+8. What happens to the accuracy if you increase or decrease the threshold value?
+Let's increase the treshold by 0.1.
+```{r}
+table(SongsTest$Top10, testPredict>=0.55)
+```
+Calculate accuracy.
+```{r}
+model3_accuracy2=(314+8)/(314+51+8)
+model3_accuracy2
+```
+If threshold goes up, accuracy goes down.
+
+Let's decrease the threshold by 0.1.
+```{r}
+table(SongsTest$Top10, testPredict>=0.35)
+```
+Calculate accuracy.
+```{r}
+model3_accuracy3=(299+24)/(299+15+35+24)
+model3_accuracy3
+```
+If threshold goes down, accuracy goes down.
+
+9. What would the accuracy of the baseline model be on the test set? (Give your answer as a number between 0 and 1.)
+
+Let's make a table from Top10 songs.
+```{r}
+table(SongsTest$Top10)
+```
+Let's calculate accuracy for the baseline model.
+```{r}
+baseline_accuracy=314/(314+59)
+baseline_accuracy
+```
+Model3 has little bit better accuracy (0.87) than baseline model (0.84). 
+
+10. How many songs does model3 correctly predict as Top 10 hits in 2010 (remember that all songs in 2010 went into our test set), using a threshold of 0.45?
+
+Create new subset for the year 2010.
+```{r}
+SongsTest2010=subset(SongsTest,year=2010)
+table(SongsTest$Top10, testPredict>=0.45)
+```
+Model3 predicts 19 true positives as hits. It also predicts 40 false positives as hits.

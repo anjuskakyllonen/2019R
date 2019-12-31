@@ -1,0 +1,78 @@
+---
+title: "Exercise 3"
+output: html_notebook
+---
+
+3. Read the file.
+```{r}
+college = read.csv("College.csv", header=T)
+str(college)
+```
+There are 777 observations and 19 variables.
+
+```{r}
+attach(college)
+summary(college)
+```
+How many private universities are there in the data? 565 private universities.
+What is the average graduation rate (Grad.Rate)? 65.46.
+What is the range of estimated book costs (range=maxValue-minValue)?
+```{r}
+bookCosts=2340.0-96.0
+bookCosts
+```
+4. The next task is to find out what is the highest value of variable Top10perc and to which University it is associated - the name of this University.
+```{r}
+college <- college[order(-college$Top10perc),]
+college[1,]
+```
+5. Form a couple of linear models with Grad.Rate as dependent variable. Which
+independent variables seem to be in dependence with high graduation rate? How high R^2 do you achieve? Suggestion: find a good model with 3 independent variables. Beware of multicollinearity issue.
+
+Let's plot some of the variables with Grad.Rate.
+
+
+```{r}
+plot(Grad.Rate,Top25perc)
+
+```
+Grad.Rate seems to correlate quite well with Top25perc. What about Top10perc and Top25perc?
+```{r}
+plot(Top10perc,Top25perc)
+```
+They are multicollinear so we cannot use both of them in the model. I choose Top25percent for the model1.
+```{r}
+model1=lm(Grad.Rate~Top25perc)
+summary(model1)
+```
+It seems that Top25perc fits well in the model. Let's try another factor, perc.alumni - how does it look like when plotted with Grad.Rate?
+```{r}
+plot(Grad.Rate,perc.alumni)
+```
+It could be in our model as well. But what about Top25percent and perc.alumni, are they correlated?
+```{r}
+cor(Top25perc,perc.alumni)
+```
+The correlation is quite high. Let's plot the two.
+```{r}
+plot(Top25perc,perc.alumni)
+```
+No visible correlation is detected. Thus let us add perc.alumni to the model. How does it look like now?
+```{r}
+model2=lm(Grad.Rate~Top25perc+perc.alumni)
+summary(model2)
+```
+Both Top25perc and perc.alumni are highly significant in the model. Let's try adding the third independent variable into the model. Let's add Expend. At first, let's plot it with Grad.Rate.
+```{r}
+plot(Grad.Rate,Expend)
+```
+This does not seem convincing. What about Accept/Apps?
+```{r}
+plot(Grad.Rate,(Accept/Apps))
+```
+There seems to be a slight inverse correlation. Let's add Accept/Apps to the model to see what happens. There should not be any multicollinearity issues as the correlation is to the other direction.
+```{r}
+model3=lm(Grad.Rate~Top25perc+perc.alumni+(Accept/Apps))
+summary(model3)
+```
+The added value is not significant. Thus, model two with Top25perc and perc.alumni is the best model found so far, with Multiple R-squared:  0.3307 and	Adjusted R-squared:  0.329. 

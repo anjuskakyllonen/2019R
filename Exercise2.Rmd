@@ -1,0 +1,179 @@
+---
+title: "Exercise 2"
+output: html_notebook
+---
+
+Read data and look at its structure.
+```{r}
+wine <- read.csv("wine.csv", header=TRUE)
+fix(wine)
+str(wine)
+```
+Summarize data.
+```{r}
+summary(wine)
+```
+One variable regression
+
+Create model1 with Price and AGST.
+```{r}
+model1=lm(Price~AGST, data=wine)
+summary(model1)
+```
+1. What does this model predict to be the price of a wine with AGST = 17.33C?
+```{r}
+model1_price = -3.4178+0.6351*17.33
+model1_price
+```
+The price would be 7.59.
+
+2. In our data 17.33 o C was the average growing season temperature (AGST) of year 1961 (observation 8). What was the actual price that year?
+```{r}
+wine[8,]
+```
+The actual price was 8.49.
+
+3. What is the residual 1961?
+```{r}
+model1_residual = 8.4937-7.588483
+model1_residual
+```
+4. Once you calculated the residual 1961, you can check it as follows. How close did you get?
+```{r}
+model1$residuals[8]
+```
+The first two decimals are the same.
+
+The expression: model1$residuals[8] referred to the 8th value of vector model1$residuals, which contains all the residuals of the model1. With [8] was specified the residual of observation number 8 which is the one of year 1961.
+
+5. Calculate RSS with the residuals -vector (RSS=sum of squared residuals).
+```{r}
+model1_rss = sum((model1$residuals)^2)
+model1_rss
+```
+Multivariable regression
+
+Now let’s add another independent variable, HarvestRain to our regression model. We’ll call it model2. Before starting to compare the models, let’s form one more, model3, with independent variables AGST, HarvestRain, WinterRain, Age and FrancePop.
+```{r}
+model2 = lm(Price~AGST+HarvestRain, data=wine)
+model3 = lm(Price~AGST+HarvestRain+WinterRain+Age+FrancePop, data=wine)
+```
+6. Take again the observation number 8 - year 1961. Calculate with year 1961 values (observation 8) the predicted value of Price, given by model2.
+```{r}
+summary(model2)
+```
+Let's look at year 1961.
+```{r}
+wine[8,]
+```
+The predicted price with model2 for 1961 is
+```{r}
+model2_price = -2.20265 + 0.60262*17.3333 + (-0.00457)*38
+model2_price
+```
+The price for 1961 would be 8.07.
+
+7. Calculate RSS for model2.
+```{r}
+model2_rss = sum((model2$residuals)^2)
+model2_rss
+```
+Calculate RSSs for model3.
+```{r}
+model3_rss = sum((model3$residuals)^2)
+model3_rss
+```
+Compare to RSS of model1:
+Model1 RSS was 5.734875, model2 RSS was 2.970373 and model3 RSS was 1.732113. The smaller the better, so model3 is best from this point of view.
+
+Compare also R2, both multiple R2 and adjusted R2:
+```{r}
+summary(model3)
+```
+
+Model1 values: Multiple R-squared:  0.435,	Adjusted R-squared:  0.4105
+Model2 values: Multiple R-squared:  0.7074,	Adjusted R-squared:  0.6808 
+Model3 values: Multiple R-squared:  0.8294,	Adjusted R-squared:  0.7845
+
+Conclusion: Model3 is best as it is highest in terms of multiple R2 and adjusted R2.
+
+Create model4 with independent variables AGST,HarvestRain, WinterRain and Age.
+```{r}
+model4 = lm(Price~AGST+HarvestRain+WinterRain+Age, data=wine)
+summary(model4)
+```
+R2 values stayed about the same: Multiple R2 from 0.8294 to 0.8286 and Adjusted R2 from 0.7845 to 0.7943. Previously non-significant Age became significant in the model (0.001 < p < 0.01) and WinterRain's significancy was increased from 0.05 < p < 0.1 to 0.01 < p < 0.05.
+
+Correlation and multicollinearity
+```{r}
+cor(wine$Price,wine$AGST)
+```
+```{r}
+plot(wine[,-1])
+```
+9. If you look at correlations between independent variables - are there other concerns about possible multicollinearity? In the model4, there are independent variables AGST, HarvestRain, WinterRain and Age. Let's calculate correlations for each pair.
+```{r}
+cor(wine$AGST,wine$HarvestRain)
+```
+```{r}
+cor(wine$AGST,wine$WinterRain)
+```
+Some correlation exists so let's plot AGST and WinterRain.
+
+```{r}
+plot(wine$AGST,wine$WinterRain)
+```
+No visible correlation.
+
+```{r}
+cor(wine$AGST,wine$Age)
+```
+Some correlation, let's plot AGST and Age.
+
+```{r}
+plot(wine$AGST,wine$Age)
+```
+No visible correlation.
+
+```{r}
+cor(wine$HarvestRain,wine$WinterRain)
+```
+Some correlation, let's plot HarvestRain and WinterRain
+```{r}
+plot(wine$HarvestRain,wine$WinterRain)
+```
+No visible correlation.
+```{r}
+cor(wine$HarvestRain,wine$Age)
+```
+```{r}
+cor(wine$WinterRain,wine$Age)
+```
+Conclusion: No visible or thus remarkable collinearity in model4.
+
+Read in wine_test.csv
+```{r}
+wine_test <- read.csv("wine_test.csv", header=TRUE)
+str(wine_test)
+```
+Compare test set with model4
+```{r}
+predictTest = predict(model4, newdata = wine_test)
+predictTest
+```
+10. Calculate RSS with actual values of Prices in the test data and the values predicted by model4.
+```{r}
+RSS = sum((wine_test$Price - predictTest)^2)
+RSS
+```
+11. Calculate TSS.
+```{r}
+TSS = sum((wine_test$Price - mean(wine$Price))^2)
+TSS
+
+```
+12. Calculate R2.
+```{r}
+R2=1-(RSS/TSS)
+R2
+```

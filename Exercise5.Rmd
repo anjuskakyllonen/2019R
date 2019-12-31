@@ -1,0 +1,110 @@
+---
+title: "Exercise 5"
+output: html_notebook
+---
+
+1. Prepare the dataset: Clean the NA-observations, check the datatypes and so on. At first, let's read data.
+```{r}
+loans = read.csv("loans.csv", na.strings ="NA")
+str(loans)
+```
+Let's change all data types to numeric and omit NA values.
+```{r}
+loans$credit.policy=as.numeric(loans$credit.policy)
+loans$purpose=as.numeric(loans$purpose)
+loans$fico=as.numeric(loans$fico)
+loans$revol.bal=as.numeric(loans$revol.bal)
+loans$inq.last.6mths=as.numeric(loans$inq.last.6mths)
+loans$delinq.2yrs=as.numeric(loans$delinq.2yrs)
+loans$pub.rec=as.numeric(loans$pub.rec)
+loans$not.fully.paid=as.numeric(loans$not.fully.paid)
+
+loans=na.omit(loans)
+str(loans)
+```
+All data is now numeric and ready for the analysis.
+
+2. Split the data into train set (75%) and test set (25%). You need a package “caTools” and its function sample.split, which creates a binary vector telling into which set each observation belongs.
+```{r}
+install.packages("caTools")
+library(caTools)
+split=sample.split(loans$not.fully.paid, SplitRatio=0.75)
+treeni=subset(loans,split==TRUE)
+testi=subset(loans,split==FALSE)
+```
+4. Form a logistic regression model with 3-4 independent variables. Try a couple and choose the best one.
+
+Let's look at correlations of different variables in the dataset.
+```{r}
+cor(treeni)
+```
+I want to select the model so that I get good correlations with each chosen independent variable and dependent variable not.fully.paid. The independent variables that correlate the most with not.fully.paid are credit.policy (-0.15), int.rate (0.16), fico (-0.15) and inq.last.6mths(0.13). Credit.policy correlates moderately with fico (0.35), int.rate (-0.31) and quite a lot with inq.last.6mths(-0.53). Fico correlates quite a lot with with int.rate (-0.71) and moderately with inq.last.6mths (-0.18). Int.rate correlates moderately with inq.last.6mths (0.20). 
+
+Taking into account higher correlation of credit.policy and inq.last.6mths, and that of fico and int.rate, highly correlating variables should not be included in the same model.
+
+Let's find the third variable for the models. Revol.util correlates a little bit with not.fully.paid (0.08).It correlates with credit.policy(-0.11), fico (-0.54) and int.rate(0.46).It can be applied if fico is not present. 
+
+Is there any other variable that correlates with not.fully.paid but does not correlate with fico less than -/+0.5? Let's take revol.bal to the model since it is not too much correlating with credit.policy (-0.19) or fico (-0.01) but somewhat with not.fully.paid(0.06). 
+
+The three models are following:
+- model1 includes credit.policy, fico, revol.bal
+- model2 includes inq.last.6mths, int.rate, revol.util
+- model3 includes credit.policy, int.rate, revol.util
+
+Let's create model1.
+```{r}
+model1=glm(not.fully.paid ~ credit.policy+fico+revol.bal,data=treeni,family=binomial)
+summary(model1)
+```
+Let's create model2.
+```{r}
+model2=glm(not.fully.paid ~ inq.last.6mths+int.rate+revol.util,data=treeni,family=binomial)
+summary(model2)
+```
+Let's create model3.
+```{r}
+model3=glm(not.fully.paid ~ credit.policy+int.rate+revol.util,data=treeni,family=binomial)
+summary(model3)
+```
+The AIC:s of the models are following:
+- model1 6044.2
+- model2 6035.5
+- model3 6027.8
+
+The model3 has the smallest AIC so it is selected for further analysis.
+
+5. Test the model on the test set. Compare accuracies with different tresholds. Report.
+
+Let's test model3 with test set.
+```{r}
+testPredict=predict(model3,newdata=testi, type="response")
+```
+Let's calculate baseline accuracy. At first, make a table.
+```{r}
+table(testi$not.fully.paid)
+```
+Baseline accuracy can now be calculated.
+
+```{r}
+acc_baseline=1999/(1999+380)
+acc_baseline
+```
+Calculate accuracy with threshold 0.35. Create table.
+```{r}
+table(testi$not.fully.paid, testPredict>=0.35)
+```
+Calculate accuracy.
+```{r}
+acc_thirtyfive=(1959+22)/(1959+40+358+22)
+acc_thirtyfive
+```
+Accuracy with threshold 0.35 is less than accuracy for the baseline model. Let's try with accuracy 0.55. At first, let's make a table.
+```{r}
+table(testi$not.fully.paid, testPredict>=0.55)
+```
+Calculate accuracy.
+```{r}
+acc_fiftyfive=1999/(1999+380)
+acc_fiftyfive
+```
+With threshold 0.55, the accuracy is the same as the baseline model. Thus model3 can't beat baseline model according to these experimentations with different thresholds.
